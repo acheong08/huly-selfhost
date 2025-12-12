@@ -107,12 +107,13 @@ services:
       - SERVER_SECRET=${SECRET}
       - DB_URL=${CR_DB_URL}
       - STORAGE_CONFIG=minio|minio?accessKey=minioadmin&secretKey=minioadmin
-      - FRONT_URL=http://localhost:8087
+      - FRONT_URL=https://huly.duti.dev
       - ACCOUNTS_URL=http://account:3000
       - FULLTEXT_URL=http://fulltext:4700
       - STATS_URL=http://stats:4900
       - LAST_NAME_FIRST=${LAST_NAME_FIRST:-true}
       - QUEUE_CONFIG=redpanda:9092
+      - MAIL_URL=http://mail:8097
     restart: unless-stopped
     networks:
       - huly_net
@@ -143,6 +144,8 @@ services:
       - ACCOUNTS_URL=https://${HOST_ADDRESS}/_accounts
       - ACCOUNT_PORT=3000
       - QUEUE_CONFIG=redpanda:9092
+      - MAIL_URL=http://mail:8097
+      - DISABLE_SIGNUP=true
     restart: unless-stopped
     networks:
       - huly_net
@@ -184,6 +187,9 @@ services:
       - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-en}
       - LAST_NAME_FIRST=${LAST_NAME_FIRST:-true}
       - DESKTOP_UPDATES_CHANNEL=${DESKTOP_CHANNEL}
+      - LIVEKIT_WS=${LIVEKIT_HOST}
+      - DISABLE_SIGNUP=true
+      - PRINT_URL=https://${HOST_ADDRESS}/_print
     restart: unless-stopped
     networks:
       - huly_net
@@ -223,6 +229,52 @@ services:
     environment:
       - HULY_DB_CONNECTION=${CR_DB_URL}
       - HULY_TOKEN_SECRET=${SECRET}
+    restart: unless-stopped
+    networks:
+      - huly_net
+  mail:
+    image: hardcoreeng/mail:${HULY_VERSION}
+    container_name: mail
+    ports:
+      - 8097:8097
+    environment:
+      - PORT=8097
+      - SOURCE=${SMTP_USERNAME}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - huly_net
+  love:
+    image: hardcoreeng/love:${HULY_VERSION}
+    container_name: love
+    ports:
+      - 8096:8096
+    environment:
+      - PORT=8096
+      - SECRET=${SECRET}
+      - ACCOUNTS_URL=http://account:3000
+      - DB_URL=${CR_DB_URL}
+      - STORAGE_CONFIG=minio|minio?accessKey=minioadmin&secretKey=minioadmin
+      - STORAGE_PROVIDER_NAME=minio
+      - LIVEKIT_HOST=${LIVEKIT_HOST}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+    restart: unless-stopped
+    networks:
+      - huly_net
+  print:
+    image: hardcoreeng/print:${HULY_VERSION}
+    container_name: print
+    ports:
+      - 4005:4005
+    environment:
+      - STORAGE_CONFIG=minio|minio?accessKey=minioadmin&secretKey=minioadmin
+      - STATS_URL=http://stats:4900
+      - SECRET=${SECRET}
+      - ACCOUNTS_URL=http://account:3000
     restart: unless-stopped
     networks:
       - huly_net
